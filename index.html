@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>专业心理测试 - 熵值维度分析（正五边形雷达图）</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Microsoft YaHei", sans-serif;
+      }
+      body {
+        background-color: #f5f7fa;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 24px;
+      }
+      .btn-box {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .reset-btn {
+        padding: 10px 25px;
+        border: none;
+        background: #e74c3c;
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+      }
+      .reset-btn:hover {
+        background: #c0392b;
+      }
+      .question-item {
+        background: #f9fafe;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a89dc;
+      }
+      .question-title {
+        font-size: 18px;
+        color: #222;
+        margin-bottom: 15px;
+        font-weight: 500;
+      }
+      /* 选项横向排列 */
+      .option-list {
+        list-style: none;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .option-item {
+        padding: 10px 20px;
+        border-radius: 6px;
+        background: #fff;
+        border: 1px solid #e1e5eb;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+      }
+      .option-item:hover {
+        background: #f0f5ff;
+        border-color: #4a89dc;
+      }
+      .option-item.active {
+        background: #4a89dc;
+        color: #fff;
+        border-color: #4a89dc;
+      }
+      .score-area {
+        margin-top: 40px;
+        padding-top: 25px;
+        border-top: 2px solid #f0f0f0;
+      }
+      .score-area h3 {
+        text-align: center;
+        color: #333;
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+      .score-item {
+        font-size: 17px;
+        line-height: 2;
+        color: #222;
+        margin-bottom: 8px;
+        padding: 6px 0;
+      }
+      .score-item strong {
+        color: #e74c3c;
+        font-weight: bold;
+      }
+      /* 正五边形雷达图容器 */
+      .radar-chart-area {
+        margin-top: 30px;
+        padding: 20px 10px;
+        background: #f9fafe;
+        border-radius: 8px;
+        text-align: center;
+        max-height: 400px;
+        overflow: hidden;
+      }
+      .radar-chart-area h4 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 18px;
+      }
+      /* 强制1:1比例容器 */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 350px;
+        height: 350px;
+        margin: 0 auto;
+      }
+      #radarChart {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .tips {
+        color: #666;
+        font-size: 14px;
+        margin-top: 20px;
+        line-height: 1.5;
+        text-align: center;
+        padding-top: 10px;
+        border-top: 1px dashed #eee;
+      }
+    </style>
+    <!-- 引入Chart.js -->
+    <script src="chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>心理测试（熵值维度分析，正五边形雷达图）</h1>
+      <div class="btn-box">
+        <button class="reset-btn" id="resetBtn">
+          重新测试（清空所有答案）
+        </button>
+      </div>
+      <div id="questionBox"></div>
+      <div class="score-area">
+        <h3>📊 你的完整测试结果分析</h3>
+        <div class="score-item">
+          你的测试总分：<strong id="totalScore"
+            >请完成所有题目后查看分数</strong
+          >
+        </div>
+        <div class="score-item">
+          我当前的总熵值是：<strong id="totalEntropy">--</strong>，暂时处于
+          <strong id="entropyStatus">□低熵 □中熵 □高熵</strong> 状态。
+          <p class="tips">
+            （满分160分，分数越高熵值越高；32～64分为低熵段，65～127分为中熵段，128～160分为高熵段。）
+          </p>
+        </div>
+        <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee" />
+        <div class="score-item">
+          「封闭程度」 相关题号：1～8题、17～24题
+          <br />我的得分：<strong id="closeScore">--</strong> ，暂时为<strong
+            id="closeStatus"
+            >□成长型 □固化型</strong
+          >
+          思维倾向。
+          <p class="tips">
+            分数越低说明越开放，越高则越封闭；小于40分为成长型思维倾向；大于40分为固化型思维倾向。
+          </p>
+        </div>
+        <div class="score-item">
+          「做功阻力」 相关题号：9～16题、25～32题
+          <br />我的得分：<strong id="resistanceScore">--</strong>
+          ，暂时为<strong id="resistanceStatus">□增效型 □内耗型</strong>
+          做功倾向。
+          <p class="tips">
+            分数越低越高效，越高则越低效；小于40分为增效做功倾向，大于40分为内耗做功倾向。
+          </p>
+        </div>
+        <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee" />
+        <div class="score-item">◆ 五向熵维得分（每个维度1~5分）</div>
+        <div class="score-item">
+          「封闭性」得分：<strong id="dim1Score">--</strong>
+          (题号1-4、17-20，总分÷8)
+        </div>
+        <div class="score-item">
+          「平衡态」得分：<strong id="dim2Score">--</strong>
+          (题号5-6、21-22，总分÷4)
+        </div>
+        <div class="score-item">
+          「高线性」得分：<strong id="dim3Score">--</strong>
+          (题号7-8、23-24，总分÷4)
+        </div>
+        <div class="score-item">
+          「内心失序」得分：<strong id="dim4Score">--</strong>
+          (题号9-12、25-28，总分÷8)
+        </div>
+        <div class="score-item">
+          「能量失焦」得分：<strong id="dim5Score">--</strong>
+          (题号13-16、29-32，总分÷8)
+        </div>
+
+        <!-- 正五边形雷达图区域 -->
+        <div class="radar-chart-area">
+          <h4>🎯 我的五向熵维雷达图</h4>
+          <div class="chart-container">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ========== 核心配置区：替换为你提供的32道题目 ==========
+      const testQuestions = [
+        {
+          id: 1,
+          title: "1. 我感到每天都在朝自己的目标迈进",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 2,
+          title: "2. 有麻烦的时候，我通常能想到一些应付的方法",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 3,
+          title:
+            "3. 一些技能（比如跑步、演讲、写作），即使我再努力，也不会学得多好",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 4,
+          title: "4. 我认为逆境有时候是对成长的一种帮助",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 5,
+          title: "5. 当一个有难度的工作需要人做时，我不希望那人是我",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 6,
+          title: "6. 我不喜欢所有新鲜且经常变化的事",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 7,
+          title: "7. 无论是什么事情，一旦开始了我就会坚持下去直至完成",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 8,
+          title: "8. 我觉得与结果相比，做一件事的过程更能够帮助人成长",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 9,
+          title: "9. 当得知一个坏消息时，我的情绪通常会比其他人更激烈",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 10,
+          title: "10. 我经常试图摆脱脑中一些不必要的想法",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 11,
+          title: "11. 我总是需要克制自己想要一直休闲、娱乐、放松的欲望",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 12,
+          title: "12. 失败总是让我在相当长一段时间内感到气馁",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 13,
+          title: "13. 我在工作或学习时，脑子里常会想到其他不相干的事情",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 14,
+          title: "14. 我常常能在自己所做的事情中找到乐趣",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 15,
+          title: "15. 当被迫在压力下工作时，我感到心烦意乱又极不情愿",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 16,
+          title: "16. 当碰到一个没有把握解决的难题时，我会非常兴奋、快乐",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 17,
+          title: "17. 我知道自己现在是为了什么而努力",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 18,
+          title: "18. 我相信自己能有效应对任何生活中突发的意外",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 19,
+          title: "19. 不管我所做的事成绩好坏，我都从不怀疑自己的学习能力",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 20,
+          title: "20. 经历挫折后我一般会变得更加成熟和有经验",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 21,
+          title: "21. 我不喜欢做那些我不知道能否顺利完成的事",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 22,
+          title: "22. 我不喜欢在不熟悉的环境中做事",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 23,
+          title: "23. 我喜欢那种需要全力以赴才能完成的工作",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 24,
+          title:
+            "24. 不管一件事的结果如何，我相信自己在过程中付出的努力是不会白费的",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 25,
+          title: "25. 每次有情绪波动的时候，我都能第一时间觉察",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 26,
+          title: "26. 我常常试着不去想、也不和人讨论让我烦恼的事情",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 27,
+          title: "27. 我经常得抵抗美食的诱惑",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 28,
+          title: "28. 我一般要过很久才能忘记不愉快的事情",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 29,
+          title:
+            "29. 我在工作或学习时，对周围的动静比如有人说话和倒水听得很清楚",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 30,
+          title: "30. 只要是能获得满足感的工作，哪怕没有报酬我也愿意做",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+        {
+          id: 31,
+          title: "31. 面对压力时，我会思考自己做了什么事情要承受这些",
+          options: [
+            { text: "完全不符", score: 1 },
+            { text: "不太符合", score: 2 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 4 },
+            { text: "完全符合", score: 5 },
+          ],
+        },
+        {
+          id: 32,
+          title: "32. 面对的事越困难，我越能集中自己的全部精力去面对",
+          options: [
+            { text: "完全不符", score: 5 },
+            { text: "不太符合", score: 4 },
+            { text: "一般", score: 3 },
+            { text: "比较符合", score: 2 },
+            { text: "完全符合", score: 1 },
+          ],
+        },
+      ];
+
+      // ========== 全局变量 ==========
+      const questionBox = document.getElementById("questionBox");
+      const totalScoreDom = document.getElementById("totalScore");
+      const totalEntropyDom = document.getElementById("totalEntropy");
+      const entropyStatusDom = document.getElementById("entropyStatus");
+      const closeScoreDom = document.getElementById("closeScore");
+      const closeStatusDom = document.getElementById("closeStatus");
+      const resistanceScoreDom = document.getElementById("resistanceScore");
+      const resistanceStatusDom = document.getElementById("resistanceStatus");
+      const dim1ScoreDom = document.getElementById("dim1Score");
+      const dim2ScoreDom = document.getElementById("dim2Score");
+      const dim3ScoreDom = document.getElementById("dim3Score");
+      const dim4ScoreDom = document.getElementById("dim4Score");
+      const dim5ScoreDom = document.getElementById("dim5Score");
+      const resetBtn = document.getElementById("resetBtn");
+      const radarChartDom = document.getElementById("radarChart");
+      let answerResult = {};
+      const STORAGE_KEY = "psy_test_answer_result";
+      let radarChartInstance = null;
+
+      // ========== 初始化 ==========
+      function initPage() {
+        const localResult = localStorage.getItem(STORAGE_KEY);
+        if (localResult) {
+          answerResult = JSON.parse(localResult);
+        }
+        renderQuestions();
+        bindOptionClick();
+        bindResetBtn();
+        calculateAllScore();
+      }
+
+      // ========== 渲染题目 ==========
+      function renderQuestions() {
+        questionBox.innerHTML = "";
+        testQuestions.forEach((question) => {
+          const questionItem = document.createElement("div");
+          questionItem.className = "question-item";
+          questionItem.dataset.id = question.id;
+
+          let questionHtml = `<div class="question-title">${question.title}</div>`;
+          questionHtml += '<ul class="option-list">';
+
+          question.options.forEach((option) => {
+            const isActive =
+              answerResult[question.id] === option.score ? "active" : "";
+            questionHtml += `<li class="option-item ${isActive}" data-score="${option.score}" data-qid="${question.id}">${option.text}</li>`;
+          });
+          questionHtml += "</ul>";
+          questionItem.innerHTML = questionHtml;
+          questionBox.appendChild(questionItem);
+        });
+      }
+
+      // ========== 绑定选项点击事件 ==========
+      function bindOptionClick() {
+        const allOptions = document.querySelectorAll(".option-item");
+        allOptions.forEach((option) => {
+          option.addEventListener("click", function () {
+            const qid = this.dataset.qid;
+            const score = parseInt(this.dataset.score);
+            document
+              .querySelectorAll(`.option-item[data-qid="${qid}"]`)
+              .forEach((item) => item.classList.remove("active"));
+            this.classList.add("active");
+            answerResult[qid] = score;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(answerResult));
+            calculateAllScore();
+          });
+        });
+      }
+
+      // ========== 绑定重新测试按钮 ==========
+      function bindResetBtn() {
+        resetBtn.addEventListener("click", function () {
+          answerResult = {};
+          localStorage.removeItem(STORAGE_KEY);
+          renderQuestions();
+          bindOptionClick();
+          resetScoreDom();
+          if (radarChartInstance) {
+            radarChartInstance.destroy();
+            radarChartInstance = null;
+            const ctx = radarChartDom.getContext("2d");
+            ctx.clearRect(0, 0, radarChartDom.width, radarChartDom.height);
+          }
+        });
+      }
+
+      // ========== 重置分数显示 ==========
+      function resetScoreDom() {
+        totalScoreDom.innerHTML = "请完成所有题目后查看分数";
+        totalEntropyDom.innerHTML = "--";
+        entropyStatusDom.innerHTML = "□低熵 □中熵 □高熵";
+        closeScoreDom.innerHTML = "--";
+        closeStatusDom.innerHTML = "□成长型 □固化型";
+        resistanceScoreDom.innerHTML = "--";
+        resistanceStatusDom.innerHTML = "□增效型 □内耗型";
+        dim1ScoreDom.innerHTML = "--";
+        dim2ScoreDom.innerHTML = "--";
+        dim3ScoreDom.innerHTML = "--";
+        dim4ScoreDom.innerHTML = "--";
+        dim5ScoreDom.innerHTML = "--";
+      }
+
+      // ========== 绘制正五边形雷达图 ==========
+      function renderRadarChart(dimScores) {
+        if (radarChartInstance) {
+          radarChartInstance.destroy();
+          radarChartInstance = null;
+        }
+
+        const labels = ["封闭性", "高线性", "能量失焦", "内心失序", "平衡态"];
+        const data = [
+          parseFloat(dimScores.dim1),
+          parseFloat(dimScores.dim3),
+          parseFloat(dimScores.dim5),
+          parseFloat(dimScores.dim4),
+          parseFloat(dimScores.dim2),
+        ];
+
+        const config = {
+          type: "radar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "我的五向熵维得分",
+                data: data,
+                backgroundColor: "rgba(74, 143, 220, 0.2)",
+                borderColor: "rgba(74, 143, 220, 1)",
+                borderWidth: 2,
+                pointBackgroundColor: "rgba(74, 143, 220, 1)",
+                pointRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1,
+            scales: {
+              r: {
+                angleLines: {
+                  display: true,
+                  color: "rgba(0, 0, 0, 0.1)",
+                },
+                grid: {
+                  color: "rgba(0, 0, 0, 0.1)",
+                },
+                pointLabels: {
+                  font: {
+                    size: 12,
+                    family: "Microsoft YaHei",
+                  },
+                  color: "#333",
+                  padding: 5,
+                },
+                ticks: {
+                  backdropColor: "transparent",
+                  stepSize: 1,
+                  min: 1,
+                  max: 5,
+                  font: {
+                    size: 10,
+                  },
+                  padding: 3,
+                },
+                suggestedMin: 1,
+                suggestedMax: 5,
+              },
+            },
+            plugins: {
+              legend: {
+                position: "top",
+                labels: {
+                  font: {
+                    family: "Microsoft YaHei",
+                    size: 12,
+                  },
+                  padding: 5,
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.label + ": " + context.raw + " 分";
+                  },
+                },
+                boxPadding: 3,
+              },
+            },
+            layout: {
+              padding: {
+                top: 5,
+                right: 5,
+                bottom: 5,
+                left: 5,
+              },
+            },
+          },
+        };
+
+        radarChartInstance = new Chart(radarChartDom, config);
+      }
+
+      // ========== 计算所有分数 ==========
+      function calculateAllScore() {
+        const answeredCount = Object.keys(answerResult).length;
+        const totalQuestionCount = testQuestions.length;
+
+        if (answeredCount < totalQuestionCount) {
+          totalScoreDom.innerHTML = `还剩 ${totalQuestionCount - answeredCount} 道题未答，请完成所有题目`;
+          totalScoreDom.style.color = "#666";
+          if (radarChartInstance) {
+            radarChartInstance.destroy();
+            radarChartInstance = null;
+            const ctx = radarChartDom.getContext("2d");
+            ctx.clearRect(0, 0, radarChartDom.width, radarChartDom.height);
+          }
+          return;
+        }
+
+        // 计算总得分
+        let totalScore = 0;
+        for (const score of Object.values(answerResult)) {
+          totalScore += score;
+        }
+        totalScoreDom.innerHTML = `${totalScore} 分（满分160分）`;
+        totalScoreDom.style.color = "#e74c3c";
+        totalEntropyDom.innerHTML = totalScore;
+
+        // 判定熵值状态
+        let entropyStatus = "";
+        if (totalScore >= 32 && totalScore <= 64) {
+          entropyStatus = "✅低熵 □中熵 □高熵";
+        } else if (totalScore >= 65 && totalScore <= 127) {
+          entropyStatus = "□低熵 ✅中熵 □高熵";
+        } else if (totalScore >= 128 && totalScore <= 160) {
+          entropyStatus = "□低熵 □中熵 ✅高熵";
+        }
+        entropyStatusDom.innerHTML = entropyStatus;
+
+        // 计算封闭程度
+        const closeIds = [
+          1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24,
+        ];
+        let closeScore = closeIds.reduce(
+          (sum, id) => sum + answerResult[id],
+          0
+        );
+        closeScoreDom.innerHTML = closeScore;
+        let closeStatus =
+          closeScore < 40 ? "✅成长型 □固化型" : "□成长型 ✅固化型";
+        closeStatusDom.innerHTML = closeStatus;
+
+        // 计算做功阻力
+        const resistanceIds = [
+          9, 10, 11, 12, 13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32,
+        ];
+        let resistanceScore = resistanceIds.reduce(
+          (sum, id) => sum + answerResult[id],
+          0
+        );
+        resistanceScoreDom.innerHTML = resistanceScore;
+        let resistanceStatus =
+          resistanceScore < 40 ? "✅增效型 □内耗型" : "□增效型 ✅内耗型";
+        resistanceStatusDom.innerHTML = resistanceStatus;
+
+        // 计算五向熵维得分
+        const dim1Ids = [1, 2, 3, 4, 17, 18, 19, 20];
+        const dim1Score = (
+          dim1Ids.reduce((sum, id) => sum + answerResult[id], 0) / 8
+        ).toFixed(2);
+        dim1ScoreDom.innerHTML = dim1Score;
+
+        const dim2Ids = [5, 6, 21, 22];
+        const dim2Score = (
+          dim2Ids.reduce((sum, id) => sum + answerResult[id], 0) / 4
+        ).toFixed(2);
+        dim2ScoreDom.innerHTML = dim2Score;
+
+        const dim3Ids = [7, 8, 23, 24];
+        const dim3Score = (
+          dim3Ids.reduce((sum, id) => sum + answerResult[id], 0) / 4
+        ).toFixed(2);
+        dim3ScoreDom.innerHTML = dim3Score;
+
+        const dim4Ids = [9, 10, 11, 12, 25, 26, 27, 28];
+        const dim4Score = (
+          dim4Ids.reduce((sum, id) => sum + answerResult[id], 0) / 8
+        ).toFixed(2);
+        dim4ScoreDom.innerHTML = dim4Score;
+
+        const dim5Ids = [13, 14, 15, 16, 29, 30, 31, 32];
+        const dim5Score = (
+          dim5Ids.reduce((sum, id) => sum + answerResult[id], 0) / 8
+        ).toFixed(2);
+        dim5ScoreDom.innerHTML = dim5Score;
+
+        // 绘制雷达图
+        renderRadarChart({
+          dim1: dim1Score,
+          dim2: dim2Score,
+          dim3: dim3Score,
+          dim4: dim4Score,
+          dim5: dim5Score,
+        });
+      }
+
+      // ========== 页面加载完成初始化 ==========
+      window.onload = function () {
+        initPage();
+      };
+    </script>
+  </body>
+</html>
