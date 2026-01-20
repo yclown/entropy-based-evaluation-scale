@@ -224,6 +224,10 @@
             <canvas id="radarChart"></canvas>
           </div>
         </div>
+        <div class="tips">
+          ★ 第1，2，4，7，8，13，14，16，17，18，20，23，24，30，32 分值为5到1 ★
+          ★ 其他题目分值为1到5 ★
+        </div>
       </div>
     </div>
 
@@ -836,7 +840,7 @@
         ];
         let closeScore = closeIds.reduce(
           (sum, id) => sum + answerResult[id],
-          0
+          0,
         );
         closeScoreDom.innerHTML = closeScore;
         let closeStatus =
@@ -849,7 +853,7 @@
         ];
         let resistanceScore = resistanceIds.reduce(
           (sum, id) => sum + answerResult[id],
-          0
+          0,
         );
         resistanceScoreDom.innerHTML = resistanceScore;
         let resistanceStatus =
